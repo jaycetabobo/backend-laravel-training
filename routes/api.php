@@ -2,7 +2,7 @@
 use App\Models\Product;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Api\Product\ProductController;
 use Illuminate\Container\Attributes\Auth;
 
 Route::prefix('v1')->group(function () {
@@ -13,7 +13,7 @@ Route::prefix('v1')->group(function () {
         // Protected routes
         Route::middleware('auth:api')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
-            Route::get('users', AuthController::class, 'user');
+            Route::get('users', [AuthController::class, 'user']);
 
             Route::prefix('products')->group(function () {
                 Route::get('/', [ProductController::class, 'index']);

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
-{
+{   
+    
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -21,17 +22,21 @@ class AuthController extends Controller
             return response()->json(['error' => $validator->errors()], 422);
         }
 
-        if (Auth::attempt($request->only('email', 'password'))) {
-            $user = Auth::user();  // Gets user after successful authentication
-            $token = $user->createToken('AuthToken')->accessToken;
+        $credentials = $request->only('email', 'password');
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $tokenResult = $user->createToken('Personal Access Token');
+            $token = $tokenResult->token;
+            $token->save();
 
             return response()->json([
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer'
+                'access_token' => $tokenResult->accessToken,
+                'token_type' => 'Bearer',
+                'expires_at' => $token->expires_at
             ]);
         } else {
-            return response()->json(['error' => 'Invalid credentials'], 401);
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
     }
 
@@ -47,19 +52,25 @@ class AuthController extends Controller
             return response()->json(['error' => $validator->errors()], 422);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
-        ]);
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+            ]);
 
-        $token = $user->createToken('AuthToken')->accessToken;
+            $tokenResult = $user->createToken('Personal Access Token');
+            $token = $tokenResult->token;
+            $token->save();
 
-        return response()->json([
-            'user' => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer'
-        ], 201);
+            return response()->json([
+                'access_token' => $tokenResult->accessToken,
+                'token_type' => 'Bearer',
+                'expires_at' => $token->expires_at
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed'], 500);
+        }
     }
 
     public function logout(Request $request)
